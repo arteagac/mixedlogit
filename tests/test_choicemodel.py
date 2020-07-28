@@ -20,7 +20,7 @@ isvars = ['income']
 asvars = ['price','catch']
 base_alt = 'bus'
 fit_intercept = True
-max_iterations = 2000
+max_iterations = 1000
 
 def test__validate_input():
     with pytest.raises(ValueError):
