@@ -12,7 +12,7 @@ The following example analyzes choices of fishing modes. See the data [here](exa
 - `alternatives`:  List of alternatives names or codes.
 - `asvars`: List of alternative specific variables
 - `isvars`: List of individual specific variables
-The current version of `pymlogit` only supports data in long format.
+The current version of `mixedlogit` only supports data in long format.
 
 #### Usage
 ```python
