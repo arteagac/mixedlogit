@@ -1,0 +1,14 @@
+language: python
+
+python:
+  - 3.6
+
+install:
+  - pip install -U pytest pytest-cov coveralls
+  - pip install -r requirements.txt
+
+script:
+  - python -m pytest --cov=mixedlogit
+
+after_sucess:
+  - coveralls
