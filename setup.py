@@ -1,9 +1,12 @@
 import setuptools
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
 setuptools.setup(name='mixedlogit',
       version='0.0.1',
       description='Estimation of mixed, multinomial, and conditional logit models in Python',
-      long_description = 'Estimation of mixed, multinomial, and conditional logit models in Python',
+      long_description = long_description,
+      long_description_content_type="text/markdown",
       url='https://github.com/arteagac/mixedlogit',
       author='Cristian Arteaga',
       author_email='cristiandavidarteaga@gmail.com',
