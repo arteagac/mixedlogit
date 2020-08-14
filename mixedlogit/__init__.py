@@ -1,1 +1,1 @@
-from .choicemodel import ChoiceModel
+from .choice_model import ChoiceModel
