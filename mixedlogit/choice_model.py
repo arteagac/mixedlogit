@@ -77,8 +77,8 @@ class ChoiceModel():
             rvdist = list(self.randvars.values())
             self.model = MixedLogit()
             optimize_res = self.model.fit(X, y, rvpos, rvdist,
-                                          mixby, initial_coeff, n_draws, maxiter)
-            print(optimize_res)
+                                          mixby, initial_coeff, n_draws,
+                                          maxiter)
             # TODO: Update when handling unbalanced panels
             N = int(len(X)/self.J) if mixby is None else len(np.unique(mixby))
             fvpos = list(set(range(len(Xnames))) - set(rvpos))
@@ -178,9 +178,9 @@ class ChoiceModel():
             print("""WARNING: Convergence was not reached during estimation. 
                   The given estimates may not be reliable""")
             print('***********************************************************')
-        print("------------------------------------------------------------------------------------")
-        print("Coefficient          \tEstimate \tStd. Error \t\tz-value \t\t\tP(>|z|)     ")
-        print("------------------------------------------------------------------------------------")
+        print("----------------------------------------------------------------------------------------")
+        print("Coefficient          \tEstimate \tStd. Error \tz-value \tP(>|z|)     ")
+        print("----------------------------------------------------------------------------------------")
         fmt = "{:16.22} \t{:0.10f} \t{:0.10f} \t{:0.10f} \t{:0.10f} {:5}"
         for i in range(len(self.coeff_)):
             signif = ""
@@ -195,7 +195,7 @@ class ChoiceModel():
             print(fmt.format(self.coeff_names[i][:15], self.coeff_[i], 
                              self.stderr[i], self.zvalues[i], self.pvalues[i], 
                              signif))
-        print("------------------------------------------------------------------------------------")
+        print("----------------------------------------------------------------------------------------")
         print('Significance:  *** 0    ** 0.001    * 0.01    . 0.05')
         print('')
         print('Log-Likelihood= %.3f' % (self.loglikelihood))
