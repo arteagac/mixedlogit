@@ -5,18 +5,19 @@ Implements multinomial and conditional logit models
 
 import numpy as np
 
+
 class MultinomialLogit():
     """Class for estimation of Multinomial and Conditional Logit Models"""
 
-    def fit(self, X, y, initial_coeff=None, maxiter=2000):
-        if initial_coeff:
-            betas = initial_coeff
-            if len(initial_coeff) != len(X):
-                raise ValueError("The size of initial_coeff must be: "
-                                 + int(len(X)))
-        else:
+    def fit(self, X, y, init_coeff=None, maxiter=2000):
+        if init_coeff is None:
             betas = np.repeat(.0, X.shape[2])
-            
+        else:
+            betas = init_coeff
+            if len(init_coeff) != X.shape[1]:
+                raise ValueError("The size of initial_coeff must be: "
+                                 + int(X.shape[1]))
+
         y = y.reshape(X.shape[0], X.shape[1])
 
         # Call optimization routine
@@ -28,7 +29,7 @@ class MultinomialLogit():
         eXB = np.exp(XB)
         p = eXB/np.sum(eXB, axis=1, keepdims=True)
         return p
-    
+
     def _loglik_and_gradient(self, betas, X, y):
         """
         Computes the log likelihood of the parameters B with self.X and self.y data
@@ -47,8 +48,8 @@ class MultinomialLogit():
         # Log likelihood
         lik = np.sum(y*p, axis=1)
         loglik = np.sum(np.log(lik))
-        # Gradient
-        g_i = np.einsum('nj,njk -> nk', (y-p), X)  # Individual contribution to the gradient
+        # Individual contribution to the gradient
+        g_i = np.einsum('nj,njk -> nk', (y-p), X)
 
         H = np.dot(g_i.T, g_i)
         Hinv = np.linalg.inv(H)
@@ -107,5 +108,5 @@ class MultinomialLogit():
                 convergence = False
                 break
 
-        return {'success':convergence, 'x': betas, 'fun': res, 'hess_inv': Hinv,
-                'nit': current_iteration}
+        return {'success': convergence, 'x': betas, 'fun': res,
+                'hess_inv': Hinv, 'nit': current_iteration}

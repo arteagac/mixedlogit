@@ -2,9 +2,18 @@
 Implements all the logic for mixed logit models
 """
 # pylint: disable=invalid-name
-import numpy as np
 import scipy.stats
 from scipy.optimize import minimize
+
+import numpy as np
+xnp = np  # xnp is dinamycally linked to numpy or cupy. Numpy used by default
+use_gpu = False
+try:
+    import cupy as cp
+    xnp = cp
+    use_gpu = True
+except ImportError:
+    pass
 
 
 class MixedLogit():
@@ -16,12 +25,10 @@ class MixedLogit():
         self.rvdist = None
 
     # X: (N, J, K)
-    def fit(self, X, y, rvpos, rvdist, mixby=None, initial_coeff=None,
-            n_draws=200, maxiter=2000):
-        N = X.shape[0]
-        J = X.shape[1]
-        K = X.shape[2]
-        R = n_draws
+    def fit(self, X, y, rvpos, rvdist, mixby=None, init_coeff=None,
+            n_draws=200, halton=True, maxiter=2000):
+        N, J, K, R = X.shape[0], X.shape[1], X.shape[2], n_draws
+
         if mixby is not None:  # If panel
             P = np.max(np.unique(
                 mixby, return_counts=True)[1]/J).astype(int)  # Panel size
@@ -36,16 +43,20 @@ class MixedLogit():
         self.rvidx = np.zeros(K, dtype=bool)
         self.rvidx[rvpos] = True  # True: Random var, False: Fixed var
         self.rvdist = rvdist
-        draws = np.stack([self._get_normal_std_draws(N, R)
-                          for dis in self.rvdist], axis=1)  # (N,Kr,R)
 
-        if initial_coeff:
-            betas = initial_coeff
-            if len(initial_coeff) != K + len(rvpos):
-                raise ValueError("The size of initial_coeff must be: "
-                                 + int(K + len(rvpos)))
-        else:
+        draws = self._generate_draws(N, R, halton)  # (N,Kr,R)
+        n_coeff = K + len(rvpos)
+        if init_coeff is None:
             betas = np.repeat(.0, K + len(rvpos))
+        else:
+            betas = init_coeff
+            if len(init_coeff) != n_coeff:
+                raise ValueError("The size of init_coeff must be: " + n_coeff)
+
+        if use_gpu:
+            X = cp.asarray(X)
+            y = cp.asarray(y)
+            draws = cp.asarray(draws)
 
         optimize_res = minimize(self._loglik_and_gradient, betas, jac=True,
                                 args=(X, y, draws), method='BFGS', tol=1e-6,
@@ -58,22 +69,24 @@ class MixedLogit():
         Xf = X[:, :, :, ~self.rvidx]  # Data for fixed coefficients
         Xr = X[:, :, :, self.rvidx]   # Data for random coefficients
 
-        XBf = np.einsum('npjk,k -> npj', Xf, Bf)  # (N,P,J)
-        XBr = np.einsum('npjk,nkr -> npjr', Xr, Br)  # (N,P,J,R)
+        XBf = xnp.einsum('npjk,k -> npj', Xf, Bf)  # (N,P,J)
+        XBr = xnp.einsum('npjk,nkr -> npjr', Xr, Br)  # (N,P,J,R)
         V = XBf[:, :, :, None] + XBr  # (N,P,J,R)
         V[V > 700] = 700
-        eV = np.exp(V)
-        eV[np.isposinf(eV)] = 1e+30
-        eV[np.isneginf(eV)] = 1e-30
-        sumeV = np.sum(eV, axis=2, keepdims=True)
+        eV = xnp.exp(V)
+        # eV[xnp.isposinf(eV)] = 1e+30
+        # eV[xnp.isneginf(eV)] = 1e-30
+        sumeV = xnp.sum(eV, axis=2, keepdims=True)
         sumeV[sumeV == 0] = 1e-30
         p = eV/sumeV  # (N,P,J,R)
         return p
 
     def _loglik_and_gradient(self, betas, X, y, draws):
+        if use_gpu:
+            betas = cp.asarray(betas)
         p = self._compute_probabilities(betas, X, draws)
         # Probability of chosen alternatives
-        pch = np.sum(y*p, axis=2)  # (N,P,R)
+        pch = xnp.sum(y*p, axis=2)  # (N,P,R)
         pch = pch.prod(axis=1)  # (N,R)
         pch[pch == 0] = 1e-30
 
@@ -83,21 +96,39 @@ class MixedLogit():
         # Gradient
         ymp = y - p  # (N,P,J,R)
         # For fixed params
-        gf = np.einsum('npjr,npjk -> nkr', ymp, Xf)
+        gf = xnp.einsum('npjr,npjk -> nkr', ymp, Xf)
         # For random params
         der = self._compute_derivatives(betas, draws)
-        gr_b = np.einsum('npjr,npjk -> nkr', ymp, Xr)*der
-        gr_w = np.einsum('npjr,npjk -> nkr', ymp, Xr)*der*draws
+        gr_b = xnp.einsum('npjr,npjk -> nkr', ymp, Xr)*der
+        gr_w = xnp.einsum('npjr,npjk -> nkr', ymp, Xr)*der*draws
         # Aggregate gradient and divide by scaled probability
-        g = np.concatenate((gf, gr_b, gr_w), axis=1)  # (N,K,R)
-        g = (g*pch[:, None, :])/np.mean(pch, axis=1)[:, None, None]  # (N,K,R)
-        g = np.mean(g, axis=2)  # (N,K)
-        grad = np.sum(g, axis=0)  # (K,)
+        g = xnp.concatenate((gf, gr_b, gr_w), axis=1)  # (N,K,R)
+        g = (g*pch[:, None, :])/xnp.mean(pch, axis=1)[:, None, None]  # (N,K,R)
+        g = xnp.mean(g, axis=2)  # (N,K)
+        grad = xnp.sum(g, axis=0)  # (K,)
 
         # Log-likelihood
-        lik = np.mean(pch, axis=1)  # (N,R)
-        loglik = np.sum(np.log(lik))  # (N,)
+        lik = xnp.mean(pch, axis=1)  # (N,R)
+        loglik = xnp.sum(xnp.log(lik))  # (N,)
+        if use_gpu:
+            grad, loglik = cp.asnumpy(grad), cp.asnumpy(loglik)
         return -loglik, -grad
+
+    def _apply_distribution(self, betas_random, draws):
+        for k, dist in enumerate(self.rvdist):
+            if dist == 'ln':
+                betas_random[:, k, :] = xnp.exp(betas_random[:, k, :])
+        return betas_random
+
+    def _compute_derivatives(self, betas, draws):
+        _, betas_random = self._transform_betas(betas, draws)
+        Kr = self.rvidx.sum()  # Number of random coeff
+        N, R = draws.shape[0], draws.shape[2]
+        der = xnp.ones((N, Kr, R))
+        for k, dist in enumerate(self.rvdist):
+            if dist == 'ln':
+                der[:, k, :] = betas_random[:, k, :]
+        return der
 
     def _transform_betas(self, betas, draws):
         # Extract coeffiecients from betas array
@@ -110,25 +141,39 @@ class MixedLogit():
         betas_random = self._apply_distribution(betas_random, draws)
         return betas_fixed, betas_random
 
-    def _get_normal_std_draws(self, sample_size, n_draws, shuffled=False):
-        normal_dist = scipy.stats.norm(loc=0.0, scale=1.0)
-        draws = normal_dist.rvs(size=(sample_size, n_draws))
-        if shuffled:
-            np.random.shuffle(draws)
+    def _generate_draws(self, sample_size, n_draws, halton=True):
+        if halton:
+            draws_function = self._get_halton_draws
+        else:
+            draws_function = self._get_uniform_draws
+        draws = np.stack([
+            scipy.stats.norm.ppf(draws_function(sample_size, n_draws))
+            for dis in self.rvdist
+            ], axis=1)
         return draws
 
-    def _apply_distribution(self, betas_random, draws):
-        for k, dist in enumerate(self.rvdist):
-            if dist == 'ln':
-                betas_random[:, k, :] = np.exp(betas_random[:, k, :])
-        return betas_random
+    def _get_uniform_draws(self, sample_size, n_draws):
+        return np.random.uniform(0, 1, size=(sample_size, n_draws))
 
-    def _compute_derivatives(self, betas, draws):
-        _, betas_random = self._transform_betas(betas, draws)
-        Kr = self.rvidx.sum()  # Number of random coeff
-        N, R = draws.shape[0], draws.shape[2]
-        der = np.ones((N, Kr, R))
-        for k, dist in enumerate(self.rvdist):
-            if dist == 'ln':
-                der[:, k, :] = betas_random[:, k, :]
-        return der
+    def _get_halton_draws(self, sample_size, n_draws, symmetric=False, base=2,
+                          skip=0,  shuffled=True):
+        numbers = []
+        skipped = 0
+        for i in range(n_draws * sample_size + 1 + skip):
+            n, denom = 0., 1.
+            while i > 0:
+                i, remainder = divmod(i, base)
+                denom *= base
+                n += remainder / denom
+            if skipped < skip:
+                skipped += 1
+            else:
+                numbers.append(n)
+
+        numbers = np.array(numbers[1:])
+        if shuffled:
+            np.random.shuffle(numbers)
+        if symmetric:
+            numbers = 2.0 * numbers - 1.0
+
+        return numbers.reshape(sample_size, n_draws)

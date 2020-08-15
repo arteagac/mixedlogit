@@ -32,9 +32,9 @@ class ChoiceModel():
         self.model = None
 
     def fit(self, X, y, alternatives=None, varnames=None, asvars=None,
-            randvars=None, mixby=None, n_draws=200, base_alt=None,
-            fit_intercept=False, maxiter=2000, random_state=None,
-            initial_coeff=None):
+            randvars=None, mixby=None, n_draws=200, halton=True,
+            base_alt=None, fit_intercept=False, maxiter=2000,
+            random_state=None, init_coeff=None):
         """
         Fits multinomial model using the given data parameters.
 
@@ -77,8 +77,8 @@ class ChoiceModel():
             rvdist = list(self.randvars.values())
             self.model = MixedLogit()
             optimize_res = self.model.fit(X, y, rvpos, rvdist,
-                                          mixby, initial_coeff, n_draws,
-                                          maxiter)
+                                          mixby, init_coeff, n_draws,
+                                          halton, maxiter)
             # TODO: Update when handling unbalanced panels
             N = int(len(X)/self.J) if mixby is None else len(np.unique(mixby))
             fvpos = list(set(range(len(Xnames))) - set(rvpos))
@@ -86,7 +86,7 @@ class ChoiceModel():
                                           np.char.add("sd.", Xnames[rvpos])))
         else:
             self.model = MultinomialLogit()
-            optimize_res = self.model.fit(X, y, initial_coeff, maxiter)
+            optimize_res = self.model.fit(X, y, init_coeff, maxiter)
             N = int(len(X)/self.J)
             coeff_names = Xnames
 
@@ -100,11 +100,11 @@ class ChoiceModel():
         self.coeff_names = coeff_names
         total_iter = optimize_res['nit']
         if self.convergence:
-            print("Optimization succesfully completed after "+str(total_iter)
-                  +" iterations. Use .summary() to see the estimated values")
+            print("Optimization succesfully completed after " + str(total_iter)
+                  + " iterations. Use .summary() to see the estimated values")
         else:
             print("**** The optimization did not converge after "
-                  +str(total_iter) +" iterations.")
+                  + str(total_iter) + " iterations.")
             print("Message: "+optimize_res['message'])
 
     def _setup_design_matrix(self, X):
