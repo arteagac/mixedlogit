@@ -57,6 +57,7 @@ class MixedLogit():
             X = cp.asarray(X)
             y = cp.asarray(y)
             draws = cp.asarray(draws)
+            print("**** GPU Processing Enabled ****")
 
         optimize_res = minimize(self._loglik_and_gradient, betas, jac=True,
                                 args=(X, y, draws), method='BFGS', tol=1e-6,
