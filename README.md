@@ -2,7 +2,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/arteagac/pymlogit/badge.svg)](https://coveralls.io/github/arteagac/pymlogit)
 
 # mixedlogit
-Estimation of mixed, multinomial, and conditional logit models in python.
+GPU accelerated estimation of mixed, multinomial, and conditional logit models in python.
 
 ### Example:
 The following example analyzes choices of fishing modes. See the data [here](examples/data/fishing_long.csv) and more information about the data [here](https://doi.org/10.1162/003465399767923827). The parameters are:
@@ -12,6 +12,7 @@ The following example analyzes choices of fishing modes. See the data [here](exa
 - `alternatives`:  List of alternatives names or codes.
 - `asvars`: List of alternative specific variables
 - `isvars`: List of individual specific variables
+
 The current version of `mixedlogit` only supports data in long format.
 
 #### Usage
@@ -52,12 +53,12 @@ Log-Likelihood= -1220.535
 ### Installation
 Install using pip:  
 `pip install mixedlogit`  
-Alternatively, you can download source code and import mixedlogit.ChoiceModel
+Alternatively, you can download source code and import `mixedlogit.ChoiceModel`
 
 ### Notes:
 The current version allows estimation of:
+- Mixed logit models with normal and log-normal distributions.
+- Mixed logit models with panel data
 - Multinomial Logit Models: Models with individual specific variables
 - Conditional Logit Models: Models with alternative specific variables
 - Models with both, individual and alternative specific variables
-
-The current version does not support models with panel data.
