@@ -1,5 +1,4 @@
 [![Build Status](https://travis-ci.com/arteagac/pymlogit.svg?branch=master)](https://travis-ci.com/arteagac/pymlogit)
-[![Coverage Status](https://coveralls.io/repos/github/arteagac/pymlogit/badge.svg)](https://coveralls.io/github/arteagac/pymlogit)
 
 # mixedlogit
 GPU accelerated estimation of mixed, multinomial, and conditional logit models in python.
