@@ -50,15 +50,32 @@ Significance:  *** 0    ** 0.001    * 0.01    . 0.05
 Log-Likelihood= -1220.535
 ```
 
-### Installation
+## Installation
 Install using pip:  
 `pip install mixedlogit`  
 Alternatively, you can download source code and import `mixedlogit.ChoiceModel`
 
-### Notes:
+## Notes:
 The current version allows estimation of:
 - Mixed logit models with normal and log-normal distributions.
 - Mixed logit models with panel data
 - Multinomial Logit Models: Models with individual specific variables
 - Conditional Logit Models: Models with alternative specific variables
 - Models with both, individual and alternative specific variables
+
+## Citing `mixedlogit`
+
+To cite this package:
+
+**BibTeX**
+
+```
+@software{mixedlogit,
+author = {Arteaga, Cristian and Bhat, Prithvi and Park, JeeWoong and Paz, Alexander},
+title = {mixedlogit: A Python package for GPU accelerated estimation of mixed, multinomial and conditional logit models},
+url = {https://github.com/arteagac/mixedlogit},
+version = {0.0.1},
+year = {2020},
+}
+```
+
