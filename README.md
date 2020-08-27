@@ -10,49 +10,55 @@ The following example analyzes choices of fishing modes. See the data [here](exa
 - `varnames`: List of variable names. Its length must match number of columns in `X`
 - `alternatives`:  List of alternatives names or codes.
 - `asvars`: List of alternative specific variables
-- `isvars`: List of individual specific variables
+- `randvars`: Variables with random distribution. `"n"` for normal and `"ln"` for log normal.
 
 The current version of `mixedlogit` only supports data in long format.
 
 #### Usage
 ```python
-from mixedlogit import ChoiceModel
-
+# Read data from CSV file
 import pandas as pd
 df = pd.read_csv("examples/data/fishing_long.csv")
 
-varnames = ['income','price']
+varnames = ['price','catch']
 X = df[varnames].values
 y = df['choice'].values
 
+# Fit the model with mixedlogit
+from mixedlogit import ChoiceModel
+import numpy as np
+np.random.seed(0)
+
 model = ChoiceModel()
-model.fit(X,y,isvars = ['income'], asvars=['price'],alternatives=['beach','boat','charter','pier'],varnames= varnames)
+model.fit(X,y, varnames= varnames,
+          alternatives=['beach','boat','charter','pier'],
+          asvars=['price','catch'],
+          randvars={'price': 'n', 'catch': 'n'})
 model.summary()
 ```
 
 #### Output
 ```
-Optimization succesfully completed after 11 iterations. 
------------------------------------------------------------------------------------------
-Coefficient             Estimate        Std. Error      z-value         Pr(>|z|)     
------------------------------------------------------------------------------------------
-_intercept.boat         0.4928935957    0.2053370982    2.4004118111    0.0449401617 .    
-_intercept.charter      1.8540668405    0.2097451458    8.8396173995    0.0000000000 ***  
-_intercept.pier         0.7526662342    0.2042533633    3.6849637242    0.0009279897 **   
-income.boat             0.0000933295    0.0000471101    1.9810953073    0.1122778277      
-income.charter          -0.0000324867   0.0000478462    -0.6789828929   0.6333945307      
-income.pier             -0.0001267191   0.0000465724    -2.7209078124   0.0198559789 .    
-price                   -0.0255642838   0.0015153615    -16.8700891463  0.0000000000 ***  
------------------------------------------------------------------------------------------
+Optimization succesfully completed after 28 iterations. 
+----------------------------------------------------------------------------------------
+Coefficient          	Estimate 	Std. Error 	z-value 	P(>|z|)     
+----------------------------------------------------------------------------------------
+price            	-0.0274260820 	0.0023047000 	-11.9000657042 	0.0000000000 ***  
+catch            	1.3298624416 	0.1725241388 	7.7082688286 	0.0000000000 **   
+sd.price         	-0.0104976473 	0.0020694683 	-5.0726300621 	0.0000033594 **   
+sd.catch         	1.5929740711 	0.3686123245 	4.3215431637 	0.0000903761 **   
+----------------------------------------------------------------------------------------
 Significance:  *** 0    ** 0.001    * 0.01    . 0.05
 
-Log-Likelihood= -1220.535
+Log-Likelihood= -1300.780
 ```
 
 ## Installation
 Install using pip:  
 `pip install mixedlogit`  
 Alternatively, you can download source code and import `mixedlogit.ChoiceModel`
+
+To enable GPU processing you must install the library CuPy ([see installation instructions](https://docs.cupy.dev/en/stable/install.html)).  When mixedlogit detects that CuPy is installed, it switches to GPU processing.
 
 ## Notes:
 The current version allows estimation of:
