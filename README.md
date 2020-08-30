@@ -76,11 +76,11 @@ To cite this package:
 
 ```
 @software{mixedlogit,
-author = {Arteaga, Cristian and Bhat, Prithvi and Park, JeeWoong and Paz, Alexander},
-title = {mixedlogit: A Python package for GPU accelerated estimation of mixed, multinomial and conditional logit models},
-url = {https://github.com/arteagac/mixedlogit},
-version = {0.0.1},
-year = {2020},
+    author = {Arteaga, Cristian and Bhat, Prithvi and Park, JeeWoong and Paz, Alexander},
+    title = {mixedlogit: A Python package for GPU accelerated estimation of mixed, multinomial and conditional logit models},
+    url = {https://github.com/arteagac/mixedlogit},
+    version = {0.0.1},
+    year = {2020},
 }
 ```
 
