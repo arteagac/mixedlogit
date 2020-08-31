@@ -5,7 +5,7 @@ GPU accelerated estimation of mixed, multinomial, and conditional logit models i
 
 ### Example:
 The following example analyzes choices of fishing modes. See the data [here](examples/data/fishing_long.csv) and more information about the data [here](https://doi.org/10.1162/003465399767923827). The parameters are:
-- `X`: Data matrix in long format (numpy array, shape [n_samples, n_fvariables])
+- `X`: Data matrix in long format (numpy array, shape [n_samples, n_variables])
 - `y`: Binary vector of choices (numpy array, shape [n_samples, ])
 - `varnames`: List of variable names. Its length must match number of columns in `X`
 - `alternatives`:  List of alternatives names or codes.
@@ -77,10 +77,10 @@ To cite this package:
 ```
 @software{mixedlogit,
     author = {Arteaga, Cristian and Bhat, Prithvi and Park, JeeWoong and Paz, Alexander},
-    title = {mixedlogit: A Python package for GPU accelerated estimation of mixed, multinomial and conditional logit models},
+    title = {mixedlogit: A Python package for GPU accelerated estimation of mixed, multinomial, and conditional logit models},
     url = {https://github.com/arteagac/mixedlogit},
     version = {0.0.1},
-    year = {2020},
+    year = {2020}
 }
 ```
 
