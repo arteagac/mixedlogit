@@ -1,1 +1,2 @@
-from .choice_model import ChoiceModel
+from .mixed_logit import MixedLogit
+from .multinomial_logit import MultinomialLogit

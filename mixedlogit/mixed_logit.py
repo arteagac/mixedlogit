@@ -4,6 +4,7 @@ Implements all the logic for mixed logit models
 # pylint: disable=invalid-name
 import scipy.stats
 from scipy.optimize import minimize
+from ._choice_model import ChoiceModel
 
 import numpy as np
 xnp = np  # xnp is dinamycally linked to numpy or cupy. Numpy used by default
@@ -16,23 +17,36 @@ except ImportError:
     pass
 
 
-class MixedLogit():
+class MixedLogit(ChoiceModel):
     """Class for estimation of Mixed Logit Models"""
 
     def __init__(self):
         """Init Function"""
+        super(MixedLogit, self).__init__()
         self.rvidx = None  # Boolean index of random vars in X. True = rand var
         self.rvdist = None
 
     # X: (N, J, K)
-    def fit(self, X, y, rvpos, rvdist, mixby=None, init_coeff=None,
-            n_draws=200, halton=True, maxiter=2000):
+    def fit(self, X, y, varnames=None, alternatives=None, asvars=None,
+            base_alt=None, fit_intercept=False, init_coeff=None, maxiter=2000,
+            random_state=None, randvars=None, mixby=None, n_draws=200,
+            halton=True, verbose=1):
+        self._validate_inputs(X, y, alternatives, varnames, asvars,
+                              base_alt, fit_intercept, maxiter)
+        self._pre_fit(alternatives, varnames, asvars, base_alt,
+                      fit_intercept, maxiter)
+
+        if random_state is not None:
+            np.random.seed(random_state)
+
+        X, Xnames = self._setup_design_matrix(X)
         N, J, K, R = X.shape[0], X.shape[1], X.shape[2], n_draws
 
         if mixby is not None:  # If panel
             P = np.max(np.unique(
                 mixby, return_counts=True)[1]/J).astype(int)  # Panel size
             N = int(N/P)
+            # TODO: Update when handling unbalanced panels
         else:
             P = 1
 
@@ -40,9 +54,12 @@ class MixedLogit():
         y = y.reshape(N, P, J, 1)
 
         # Variable that contains a boolean index of random variables.
+        self.n_draws = n_draws
+        self.randvars = randvars
+        rvpos = [np.where(Xnames == rv)[0][0] for rv in self.randvars.keys()]
         self.rvidx = np.zeros(K, dtype=bool)
         self.rvidx[rvpos] = True  # True: Random var, False: Fixed var
-        self.rvdist = rvdist
+        self.rvdist = list(self.randvars.values())
 
         draws = self._generate_draws(N, R, halton)  # (N,Kr,R)
         n_coeff = K + len(rvpos)
@@ -57,13 +74,23 @@ class MixedLogit():
             X = cp.asarray(X)
             y = cp.asarray(y)
             draws = cp.asarray(draws)
-            print("**** GPU Processing Enabled ****")
+            if verbose > 0:
+                print("**** GPU Processing Enabled ****")
 
-        optimize_res = minimize(self._loglik_and_gradient, betas, jac=True,
-                                args=(X, y, draws), method='BFGS', tol=1e-6,
-                                options={'gtol': 1e-6, 'maxiter': maxiter})
+        optimizat_res = minimize(self._loglik_gradient_hessian, betas,
+                                 jac=True, args=(X, y, draws), method='BFGS',
+                                 tol=1e-6,
+                                 options={'gtol': 1e-6, 'maxiter': maxiter})
+        _, _, hess_inv = \
+            self._loglik_gradient_hessian(optimizat_res['x'], X, y, draws,
+                                          compute_hess_inv=True)
+        optimizat_res['hess_inv'] = hess_inv
 
-        return optimize_res
+        fvpos = list(set(range(len(Xnames))) - set(rvpos))
+        coeff_names = np.concatenate((Xnames[fvpos], Xnames[rvpos],
+                                      np.char.add("sd.", Xnames[rvpos])))
+
+        self._post_fit(optimizat_res, coeff_names, N, verbose)
 
     def _compute_probabilities(self, betas, X, draws):
         Bf, Br = self._transform_betas(betas, draws)  # Get fixed and rand coef
@@ -75,14 +102,13 @@ class MixedLogit():
         V = XBf[:, :, :, None] + XBr  # (N,P,J,R)
         V[V > 700] = 700
         eV = xnp.exp(V)
-        # eV[xnp.isposinf(eV)] = 1e+30
-        # eV[xnp.isneginf(eV)] = 1e-30
         sumeV = xnp.sum(eV, axis=2, keepdims=True)
         sumeV[sumeV == 0] = 1e-30
         p = eV/sumeV  # (N,P,J,R)
         return p
 
-    def _loglik_and_gradient(self, betas, X, y, draws):
+    def _loglik_gradient_hessian(self, betas, X, y, draws,
+                                 compute_hess_inv=False):
         if use_gpu:
             betas = cp.asarray(betas)
         p = self._compute_probabilities(betas, X, draws)
@@ -102,18 +128,25 @@ class MixedLogit():
         der = self._compute_derivatives(betas, draws)
         gr_b = xnp.einsum('npjr,npjk -> nkr', ymp, Xr)*der
         gr_w = xnp.einsum('npjr,npjk -> nkr', ymp, Xr)*der*draws
-        # Aggregate gradient and divide by scaled probability
+        # Aggregate gradient and multiply by scaled probability
         g = xnp.concatenate((gf, gr_b, gr_w), axis=1)  # (N,K,R)
-        g = (g*pch[:, None, :])/xnp.mean(pch, axis=1)[:, None, None]  # (N,K,R)
+        g = g*(pch[:, None, :]/xnp.mean(pch, axis=1)[:, None, None])  # (N,K,R)
         g = xnp.mean(g, axis=2)  # (N,K)
-        grad = xnp.sum(g, axis=0)  # (K,)
 
+        if compute_hess_inv:
+            H = g.T.dot(g)
+            hess_inv = xnp.linalg.inv(H)
+        else:
+            hess_inv = None
+
+        grad = xnp.mean(g, axis=0)  # (K,)
         # Log-likelihood
         lik = xnp.mean(pch, axis=1)  # (N,R)
         loglik = xnp.sum(xnp.log(lik))  # (N,)
         if use_gpu:
             grad, loglik = cp.asnumpy(grad), cp.asnumpy(loglik)
-        return -loglik, -grad
+            hess_inv = cp.asnumpy(hess_inv)
+        return -loglik, -grad, hess_inv
 
     def _apply_distribution(self, betas_random, draws):
         for k, dist in enumerate(self.rvdist):
@@ -144,37 +177,39 @@ class MixedLogit():
 
     def _generate_draws(self, sample_size, n_draws, halton=True):
         if halton:
-            draws_function = self._get_halton_draws
+            return self._get_halton_draws(sample_size, n_draws,
+                                          len(self.rvdist))
         else:
-            draws_function = self._get_uniform_draws
-        draws = np.stack([
-            scipy.stats.norm.ppf(draws_function(sample_size, n_draws))
-            for dis in self.rvdist
-            ], axis=1)
+            return self._get_random_normal_draws(sample_size, n_draws,
+                                                 len(self.rvdist))
+
+    def _get_random_normal_draws(self, sample_size, n_draws, n_vars):
+        draws = [np.random.normal(0, 1, size=(sample_size, n_draws))
+                 for _ in range(n_vars)]
+        draws = np.stack(draws, axis=1)
         return draws
 
-    def _get_uniform_draws(self, sample_size, n_draws):
-        return np.random.uniform(0, 1, size=(sample_size, n_draws))
+    def _get_halton_draws(self, sample_size, n_draws, n_vars, shuffled=False):
+        primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47,
+                  53, 59, 61, 71, 73, 79, 83, 89, 97, 101, 103, 107,
+                  109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167,
+                  173, 179, 181, 191, 193, 197, 199]
 
-    def _get_halton_draws(self, sample_size, n_draws, symmetric=False, base=2,
-                          skip=0,  shuffled=True):
-        numbers = []
-        skipped = 0
-        for i in range(n_draws * sample_size + 1 + skip):
-            n, denom = 0., 1.
-            while i > 0:
-                i, remainder = divmod(i, base)
-                denom *= base
-                n += remainder / denom
-            if skipped < skip:
-                skipped += 1
-            else:
-                numbers.append(n)
+        def halton_seq(length, prime=3, shuffled=False, drop=100):
+            h = np.array([.0])
+            t = 0
+            while len(h) < length + drop:
+                t += 1
+                h = np.append(h, np.tile(h, prime-1) +
+                              np.repeat(np.arange(1, prime)/prime**t, len(h)))
+            seq = h[drop:length+drop]
+            if shuffled:
+                np.random.shuffle(seq)
+            return seq
 
-        numbers = np.array(numbers[1:])
-        if shuffled:
-            np.random.shuffle(numbers)
-        if symmetric:
-            numbers = 2.0 * numbers - 1.0
-
-        return numbers.reshape(sample_size, n_draws)
+        draws = [halton_seq(sample_size*n_draws, prime=primes[i % len(primes)],
+                            shuffled=shuffled).reshape(sample_size, n_draws)
+                 for i in range(n_vars)]
+        draws = np.stack(draws, axis=1)
+        draws = scipy.stats.norm.ppf(draws)
+        return draws

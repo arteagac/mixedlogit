@@ -20,37 +20,36 @@ The current version of `mixedlogit` only supports data in long format.
 import pandas as pd
 df = pd.read_csv("examples/data/fishing_long.csv")
 
-varnames = ['price','catch']
+varnames = ['price', 'catch']
 X = df[varnames].values
 y = df['choice'].values
 
 # Fit the model with mixedlogit
-from mixedlogit import ChoiceModel
-import numpy as np
-np.random.seed(0)
-
-model = ChoiceModel()
-model.fit(X,y, varnames= varnames,
-          alternatives=['beach','boat','charter','pier'],
-          asvars=['price','catch'],
+from mixedlogit import MixedLogit
+model = MixedLogit()
+model.fit(X, y, 
+          varnames=varnames,
+          alternatives=['beach', 'boat', 'charter', 'pier'],
+          asvars=['price', 'catch'],
           randvars={'price': 'n', 'catch': 'n'})
 model.summary()
 ```
 
 #### Output
 ```
-Optimization succesfully completed after 28 iterations. 
-----------------------------------------------------------------------------------------
-Coefficient          	Estimate 	Std. Error 	z-value 	P(>|z|)     
-----------------------------------------------------------------------------------------
-price            	-0.0274260820 	0.0023047000 	-11.9000657042 	0.0000000000 ***  
-catch            	1.3298624416 	0.1725241388 	7.7082688286 	0.0000000000 **   
-sd.price         	-0.0104976473 	0.0020694683 	-5.0726300621 	0.0000033594 **   
-sd.catch         	1.5929740711 	0.3686123245 	4.3215431637 	0.0000903761 **   
-----------------------------------------------------------------------------------------
+Estimation succesfully completed after 27 iterations. Use .summary() to see the estimated values
+--------------------------------------------------------------------------------
+Coefficient           Estimate    Std.Err.    z-val       P>|z|   
+--------------------------------------------------------------------------------
+price                 -0.0274061  0.0024847   -11.029837  0.000000 ***  
+catch                 1.3345446   0.1726896   7.727997    0.000000 **   
+sd.price              0.0104608   0.0021156   4.944513    0.000004 **   
+sd.catch              1.5857199   0.5797202   2.735319    0.019095 .    
+--------------------------------------------------------------------------------
 Significance:  *** 0    ** 0.001    * 0.01    . 0.05
 
-Log-Likelihood= -1300.780
+Log-Likelihood= -1300.227
+
 ```
 
 ## Installation
@@ -77,7 +76,8 @@ To cite this package:
 ```
 @software{mixedlogit,
     author = {Arteaga, Cristian and Bhat, Prithvi and Park, JeeWoong and Paz, Alexander},
-    title = {mixedlogit: A Python package for GPU accelerated estimation of mixed, multinomial, and conditional logit models},
+    title = {mixedlogit: A Python package for GPU accelerated estimation of mixed, 
+             multinomial, and conditional logit models},
     url = {https://github.com/arteagac/mixedlogit},
     version = {0.0.1},
     year = {2020}
