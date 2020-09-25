@@ -50,6 +50,8 @@ Significance:  *** 0    ** 0.001    * 0.01    . 0.05
 
 Log-Likelihood= -1300.227
 ```
+For more examples of `mixedlogit` see [this Jupyter Notebook](https://github.com/arteagac/mixedlogit/blob/master/examples/mixed_logit_model.ipynb).
+To test how fast is MixedLogit with GPU processing you can use Google Colaboratory that provides some GPU processing for free. In the Jupyter Notebook above you just need to click the "Open in Colab" button to run your analysis.
 
 ## Installation
 Install using pip:  
