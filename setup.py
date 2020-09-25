@@ -3,7 +3,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(name='mixedlogit',
-      version='0.0.2rc1',
+      version='0.0.2',
       description='Estimation of mixed, multinomial, and conditional logit models in Python',
       long_description = long_description,
       long_description_content_type="text/markdown",

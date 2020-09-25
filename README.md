@@ -49,15 +49,15 @@ sd.catch              1.5857199   0.5797202   2.735319    0.019095 .
 Significance:  *** 0    ** 0.001    * 0.01    . 0.05
 
 Log-Likelihood= -1300.227
-
 ```
 
 ## Installation
 Install using pip:  
 `pip install mixedlogit`  
-Alternatively, you can download source code and import `mixedlogit.ChoiceModel`
+Alternatively, you can download source code and import `mixedlogit.MixedLogit`
 
-To enable GPU processing you must install the library CuPy ([see installation instructions](https://docs.cupy.dev/en/stable/install.html)).  When mixedlogit detects that CuPy is installed, it switches to GPU processing.
+### Enable GPU Processsing
+To enable GPU processing you must install the CuPy library  ([see installation instructions](https://docs.cupy.dev/en/stable/install.html)).  When mixedlogit detects that CuPy is installed, it switches to GPU processing.
 
 ## Notes:
 The current version allows estimation of:
