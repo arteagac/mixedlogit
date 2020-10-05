@@ -40,15 +40,14 @@ class MixedLogit(ChoiceModel):
             np.random.seed(random_state)
 
         X, Xnames = self._setup_design_matrix(X)
-        N, J, K, R = X.shape[0], X.shape[1], X.shape[2], n_draws
+        J, K, R = X.shape[1], X.shape[2], n_draws
 
         if mixby is not None:  # If panel
-            P = np.max(np.unique(
-                mixby, return_counts=True)[1]/J).astype(int)  # Panel size
-            N = int(N/P)
-            # TODO: Update when handling unbalanced panels
+            X, y, panel_info = self._balance_panels(X, y, mixby)
+            N, P = panel_info.shape
         else:
-            P = 1
+            N, P = X.shape[0], 1
+            panel_info = np.ones((N, 1))
 
         X = X.reshape(N, P, J, K)
         y = y.reshape(N, P, J, 1)
@@ -71,19 +70,19 @@ class MixedLogit(ChoiceModel):
                 raise ValueError("The size of init_coeff must be: " + n_coeff)
 
         if use_gpu:
-            X = cp.asarray(X)
-            y = cp.asarray(y)
+            X, y = cp.asarray(X), cp.asarray(y)
+            panel_info = cp.asarray(panel_info)
             draws = cp.asarray(draws)
             if verbose > 0:
                 print("**** GPU Processing Enabled ****")
 
         optimizat_res = minimize(self._loglik_gradient_hessian, betas,
-                                 jac=True, args=(X, y, draws), method='BFGS',
-                                 tol=1e-6,
+                                 jac=True, args=(X, y, panel_info, draws),
+                                 method='BFGS', tol=1e-6,
                                  options={'gtol': 1e-6, 'maxiter': maxiter})
         _, _, hess_inv = \
-            self._loglik_gradient_hessian(optimizat_res['x'], X, y, draws,
-                                          compute_hess_inv=True)
+            self._loglik_gradient_hessian(optimizat_res['x'], X, y, panel_info,
+                                          draws, compute_hess_inv=True)
         optimizat_res['hess_inv'] = hess_inv
 
         fvpos = list(set(range(len(Xnames))) - set(rvpos))
@@ -92,7 +91,7 @@ class MixedLogit(ChoiceModel):
 
         self._post_fit(optimizat_res, coeff_names, N, verbose)
 
-    def _compute_probabilities(self, betas, X, draws):
+    def _compute_probabilities(self, betas, X, panel_info, draws):
         Bf, Br = self._transform_betas(betas, draws)  # Get fixed and rand coef
         Xf = X[:, :, :, ~self.rvidx]  # Data for fixed coefficients
         Xr = X[:, :, :, self.rvidx]   # Data for random coefficients
@@ -105,15 +104,20 @@ class MixedLogit(ChoiceModel):
         sumeV = xnp.sum(eV, axis=2, keepdims=True)
         sumeV[sumeV == 0] = 1e-30
         p = eV/sumeV  # (N,P,J,R)
+        p = p*panel_info[:, :, None, None]  # Zero for unbalanced panels
         return p
 
-    def _loglik_gradient_hessian(self, betas, X, y, draws,
+    def _loglik_gradient_hessian(self, betas, X, y, panel_info, draws,
                                  compute_hess_inv=False):
         if use_gpu:
             betas = cp.asarray(betas)
-        p = self._compute_probabilities(betas, X, draws)
+        p = self._compute_probabilities(betas, X, panel_info, draws)
         # Probability of chosen alternatives
         pch = xnp.sum(y*p, axis=2)  # (N,P,R)
+        if not np.all(panel_info):  # If panel unbalanced. Not all ones
+            idx = panel_info == 0
+            for i in range(pch.shape[2]):
+                pch[:, :, i][idx] = 1  # Prod by one when unbalanced
         pch = pch.prod(axis=1)  # (N,R)
         pch[pch == 0] = 1e-30
 
@@ -153,6 +157,30 @@ class MixedLogit(ChoiceModel):
             if dist == 'ln':
                 betas_random[:, k, :] = xnp.exp(betas_random[:, k, :])
         return betas_random
+
+    def _balance_panels(self, X, y, mixby):
+        _, J, K = X.shape
+        _, p_obs = np.unique(mixby, return_counts=True)
+        p_obs = (p_obs/J).astype(int)
+        N = len(p_obs)  # This is the new N after accounting for panels
+        P = np.max(p_obs)  # Panel length for all records
+
+        if not np.all(p_obs[0] == p_obs):  # Balancing needed
+            y = y.reshape(X.shape[0], J, 1)
+            Xbal, ybal = np.zeros((N*P, J, K)), np.zeros((N*P, J, 1))
+            panel_info = np.zeros((N, P))
+            cum_p = 0  # Cumulative sum of n_obs at every iteration
+            for n, p in enumerate(p_obs):
+                Xbal[n*P:n*P + p, :, :] = X[cum_p:cum_p + p, :, :]
+                ybal[n*P:n*P + p, :, :] = y[cum_p:cum_p + p, :, :]
+                panel_info[n, :p] = np.ones(p)
+                cum_p += p
+
+        else:  # No balancing needed
+            Xbal, ybal = X, y
+            panel_info = np.ones((N, P))
+
+        return Xbal, ybal, panel_info
 
     def _compute_derivatives(self, betas, draws):
         _, betas_random = self._transform_betas(betas, draws)
