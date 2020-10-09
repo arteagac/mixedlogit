@@ -147,25 +147,25 @@ class ChoiceModel(ABC):
             print("WARNING: Convergence was not reached during estimation. "
                   "The given estimates may not be reliable")
             print('*'*50)
-        print("-"*80)
-        print("{:20} \t{:7} \t{:7} \t{:7} \t{:7} "
+        print("-"*75)
+        print("{:15} {:>13} {:>13} {:>13} {:>13}"
               .format("Coefficient", "Estimate", "Std.Err.", "z-val", "P>|z|"))
-        print("-"*80)
-        fmt = "{:20} \t{:0.7f} \t{:0.7f} \t{:0.6f} \t{:0.6f} {:5}"
+        print("-"*75)
+        fmt = "{:15} {:13.7f} {:13.7f} {:13.7f} {:13.3g} {:3}"
         for i in range(len(self.coeff_)):
             signif = ""
-            if self.pvalues[i] < 1e-15:
+            if self.pvalues[i] < 0.001:
                 signif = "***"
-            elif self.pvalues[i] < 0.001:
-                signif = "**"
             elif self.pvalues[i] < 0.01:
-                signif = "*"
+                signif = "**"
             elif self.pvalues[i] < 0.05:
+                signif = "*"
+            elif self.pvalues[i] < 0.1:
                 signif = "."
-            print(fmt.format(self.coeff_names[i][:19], self.coeff_[i],
+            print(fmt.format(self.coeff_names[i][:14], self.coeff_[i],
                              self.stderr[i], self.zvalues[i], self.pvalues[i],
                              signif))
-        print("-"*80)
-        print("Significance:  *** 0    ** 0.001    * 0.01    . 0.05")
+        print("-"*75)
+        print("Significance:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1")
         print("")
         print("Log-Likelihood= {:.3f}".format(self.loglikelihood))
