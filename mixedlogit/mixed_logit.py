@@ -76,14 +76,10 @@ class MixedLogit(ChoiceModel):
             if verbose > 0:
                 print("**** GPU Processing Enabled ****")
 
-        optimizat_res = minimize(self._loglik_gradient_hessian, betas,
+        optimizat_res = minimize(self._loglik_gradient, betas,
                                  jac=True, args=(X, y, panel_info, draws),
-                                 method='BFGS', tol=1e-6,
-                                 options={'gtol': 1e-6, 'maxiter': maxiter})
-        _, _, hess_inv = \
-            self._loglik_gradient_hessian(optimizat_res['x'], X, y, panel_info,
-                                          draws, compute_hess_inv=True)
-        optimizat_res['hess_inv'] = hess_inv
+                                 method='BFGS', tol=1e-5,
+                                 options={'gtol': 1e-4, 'maxiter': maxiter})
 
         fvpos = list(set(range(len(Xnames))) - set(rvpos))
         coeff_names = np.concatenate((Xnames[fvpos], Xnames[rvpos],
@@ -107,19 +103,13 @@ class MixedLogit(ChoiceModel):
         p = p*panel_info[:, :, None, None]  # Zero for unbalanced panels
         return p
 
-    def _loglik_gradient_hessian(self, betas, X, y, panel_info, draws,
-                                 compute_hess_inv=False):
+    def _loglik_gradient(self, betas, X, y, panel_info, draws):
         if use_gpu:
             betas = cp.asarray(betas)
         p = self._compute_probabilities(betas, X, panel_info, draws)
         # Probability of chosen alternatives
         pch = xnp.sum(y*p, axis=2)  # (N,P,R)
-        if not np.all(panel_info):  # If panel unbalanced. Not all ones
-            idx = panel_info == 0
-            for i in range(pch.shape[2]):
-                pch[:, :, i][idx] = 1  # Prod by one when unbalanced
-        pch = pch.prod(axis=1)  # (N,R)
-        pch[pch == 0] = 1e-30
+        pch = self._prob_product_across_panels(pch, panel_info)  # (N,R)
 
         Xf = X[:, :, :, ~self.rvidx]
         Xr = X[:, :, :, self.rvidx]
@@ -134,23 +124,25 @@ class MixedLogit(ChoiceModel):
         gr_w = xnp.einsum('npjr,npjk -> nkr', ymp, Xr)*der*draws
         # Aggregate gradient and multiply by scaled probability
         g = xnp.concatenate((gf, gr_b, gr_w), axis=1)  # (N,K,R)
-        g = g*(pch[:, None, :]/xnp.mean(pch, axis=1)[:, None, None])  # (N,K,R)
+        g = (g*pch[:, None, :]/xnp.mean(pch, axis=1)[:, None, None])  # (N,K,R)
         g = xnp.mean(g, axis=2)  # (N,K)
 
-        if compute_hess_inv:
-            H = g.T.dot(g)
-            hess_inv = xnp.linalg.inv(H)
-        else:
-            hess_inv = None
-
-        grad = xnp.mean(g, axis=0)  # (K,)
+        grad = xnp.sum(g, axis=0)  # (K,)
         # Log-likelihood
         lik = xnp.mean(pch, axis=1)  # (N,R)
         loglik = xnp.sum(xnp.log(lik))  # (N,)
         if use_gpu:
             grad, loglik = cp.asnumpy(grad), cp.asnumpy(loglik)
-            hess_inv = cp.asnumpy(hess_inv)
-        return -loglik, -grad, hess_inv
+        return -loglik, -grad
+
+    def _prob_product_across_panels(self, pch, panel_info):
+        if not np.all(panel_info):  # If panel unbalanced. Not all ones
+            idx = panel_info == 0
+            for i in range(pch.shape[2]):
+                pch[:, :, i][idx] = 1  # Multiply by one when unbalanced
+        pch = pch.prod(axis=1)  # (N,R)
+        pch[pch == 0] = 1e-30
+        return pch  # (N,R)
 
     def _apply_distribution(self, betas_random, draws):
         for k, dist in enumerate(self.rvdist):
@@ -171,6 +163,7 @@ class MixedLogit(ChoiceModel):
             panel_info = np.zeros((N, P))
             cum_p = 0  # Cumulative sum of n_obs at every iteration
             for n, p in enumerate(p_obs):
+                # Copy data from original to balanced version
                 Xbal[n*P:n*P + p, :, :] = X[cum_p:cum_p + p, :, :]
                 ybal[n*P:n*P + p, :, :] = y[cum_p:cum_p + p, :, :]
                 panel_info[n, :p] = np.ones(p)
@@ -205,11 +198,12 @@ class MixedLogit(ChoiceModel):
 
     def _generate_draws(self, sample_size, n_draws, halton=True):
         if halton:
-            return self._get_halton_draws(sample_size, n_draws,
-                                          len(self.rvdist))
+            draws = self._get_halton_draws(sample_size, n_draws,
+                                           len(self.rvdist))
         else:
-            return self._get_random_normal_draws(sample_size, n_draws,
-                                                 len(self.rvdist))
+            draws = self._get_random_normal_draws(sample_size, n_draws,
+                                                  len(self.rvdist))
+        return draws
 
     def _get_random_normal_draws(self, sample_size, n_draws, n_vars):
         draws = [np.random.normal(0, 1, size=(sample_size, n_draws))
