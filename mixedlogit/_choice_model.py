@@ -113,8 +113,8 @@ class ChoiceModel(ABC):
         elif isvars:
             X = Xis
 
-        names = [isvar+"."+j for isvar in isvars for j in self.alternatives
-                 if j != self.base_alt] + asvars
+        names = ["{}.{}".format(isvar, j) for isvar in isvars
+                 for j in self.alternatives if j != self.base_alt] + asvars
         names = np.array(names)
 
         return X, names
