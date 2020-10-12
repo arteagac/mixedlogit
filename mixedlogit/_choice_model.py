@@ -1,7 +1,7 @@
 """
 Implements multinomial and mixed logit models
 """
-# pylint: disable=line-too-long,invalid-name
+# pylint: disable=invalid-name
 
 import numpy as np
 from scipy.stats import t
