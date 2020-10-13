@@ -5,7 +5,7 @@ Implements all the logic for mixed logit models
 import scipy.stats
 from scipy.optimize import minimize
 from ._choice_model import ChoiceModel
-from ._gpu_wrapper import gpu_wrapper
+from ._device import device as dev
 import numpy as np
 
 
@@ -61,11 +61,10 @@ class MixedLogit(ChoiceModel):
             if len(init_coeff) != n_coeff:
                 raise ValueError("The size of init_coeff must be: " + n_coeff)
 
-        if gpu_wrapper.use_gpu:
-            xnp = gpu_wrapper.xnp
-            X, y = xnp.asarray(X), xnp.asarray(y)
-            panel_info = xnp.asarray(panel_info)
-            draws = xnp.asarray(draws)
+        if dev.using_gpu:
+            X, y = dev.to_gpu(X), dev.to_gpu(y)
+            panel_info = dev.to_gpu(panel_info)
+            draws = dev.to_gpu(draws)
             if verbose > 0:
                 print("**** GPU Processing Enabled ****")
 
@@ -81,29 +80,27 @@ class MixedLogit(ChoiceModel):
         self._post_fit(optimizat_res, coeff_names, N, verbose)
 
     def _compute_probabilities(self, betas, X, panel_info, draws):
-        xnp = gpu_wrapper.xnp
         Bf, Br = self._transform_betas(betas, draws)  # Get fixed and rand coef
         Xf = X[:, :, :, ~self.rvidx]  # Data for fixed coefficients
         Xr = X[:, :, :, self.rvidx]   # Data for random coefficients
 
-        XBf = xnp.einsum('npjk,k -> npj', Xf, Bf)  # (N,P,J)
-        XBr = xnp.einsum('npjk,nkr -> npjr', Xr, Br)  # (N,P,J,R)
+        XBf = dev.np.einsum('npjk,k -> npj', Xf, Bf)  # (N,P,J)
+        XBr = dev.np.einsum('npjk,nkr -> npjr', Xr, Br)  # (N,P,J,R)
         V = XBf[:, :, :, None] + XBr  # (N,P,J,R)
         V[V > 700] = 700
-        eV = xnp.exp(V)
-        sumeV = xnp.sum(eV, axis=2, keepdims=True)
+        eV = dev.np.exp(V)
+        sumeV = dev.np.sum(eV, axis=2, keepdims=True)
         sumeV[sumeV == 0] = 1e-30
         p = eV/sumeV  # (N,P,J,R)
         p = p*panel_info[:, :, None, None]  # Zero for unbalanced panels
         return p
 
     def _loglik_gradient(self, betas, X, y, panel_info, draws):
-        xnp = gpu_wrapper.xnp
-        if gpu_wrapper.use_gpu:
-            betas = xnp.asarray(betas)
+        if dev.using_gpu:
+            betas = dev.to_gpu(betas)
         p = self._compute_probabilities(betas, X, panel_info, draws)
         # Probability of chosen alternatives
-        pch = xnp.sum(y*p, axis=2)  # (N,P,R)
+        pch = dev.np.sum(y*p, axis=2)  # (N,P,R)
         pch = self._prob_product_across_panels(pch, panel_info)  # (N,R)
 
         Xf = X[:, :, :, ~self.rvidx]
@@ -112,22 +109,22 @@ class MixedLogit(ChoiceModel):
         # Gradient
         ymp = y - p  # (N,P,J,R)
         # For fixed params
-        gf = xnp.einsum('npjr,npjk -> nkr', ymp, Xf)
+        gf = dev.np.einsum('npjr,npjk -> nkr', ymp, Xf)
         # For random params
         der = self._compute_derivatives(betas, draws)
-        gr_b = xnp.einsum('npjr,npjk -> nkr', ymp, Xr)*der
-        gr_w = xnp.einsum('npjr,npjk -> nkr', ymp, Xr)*der*draws
+        gr_b = dev.np.einsum('npjr,npjk -> nkr', ymp, Xr)*der
+        gr_w = dev.np.einsum('npjr,npjk -> nkr', ymp, Xr)*der*draws
         # Aggregate gradient and multiply by scaled probability
-        g = xnp.concatenate((gf, gr_b, gr_w), axis=1)  # (N,K,R)
-        g = (g*pch[:, None, :]/xnp.mean(pch, axis=1)[:, None, None])  # (N,K,R)
-        g = xnp.mean(g, axis=2)  # (N,K)
+        g = dev.np.concatenate((gf, gr_b, gr_w), axis=1)  # (N,K,R)
+        g = g*pch[:, None, :]/dev.np.mean(pch, axis=1)[:, None, None]  # (N,K,R)
+        g = dev.np.mean(g, axis=2)  # (N,K)
 
-        grad = xnp.sum(g, axis=0)  # (K,)
+        grad = dev.np.sum(g, axis=0)  # (K,)
         # Log-likelihood
-        lik = xnp.mean(pch, axis=1)  # (N,R)
-        loglik = xnp.sum(xnp.log(lik))  # (N,)
-        if gpu_wrapper.use_gpu:
-            grad, loglik = xnp.asnumpy(grad), xnp.asnumpy(loglik)
+        lik = dev.np.mean(pch, axis=1)  # (N,R)
+        loglik = dev.np.sum(dev.np.log(lik))  # (N,)
+        if dev.using_gpu:
+            grad, loglik = dev.to_cpu(grad), dev.to_cpu(loglik)
         return -loglik, -grad
 
     def _prob_product_across_panels(self, pch, panel_info):
@@ -140,10 +137,9 @@ class MixedLogit(ChoiceModel):
         return pch  # (N,R)
 
     def _apply_distribution(self, betas_random, draws):
-        xnp = gpu_wrapper.xnp
         for k, dist in enumerate(self.rvdist):
             if dist == 'ln':
-                betas_random[:, k, :] = xnp.exp(betas_random[:, k, :])
+                betas_random[:, k, :] = dev.np.exp(betas_random[:, k, :])
         return betas_random
 
     def _balance_panels(self, X, y, mixby):
@@ -172,11 +168,10 @@ class MixedLogit(ChoiceModel):
         return Xbal, ybal, panel_info
 
     def _compute_derivatives(self, betas, draws):
-        xnp = gpu_wrapper.xnp
         _, betas_random = self._transform_betas(betas, draws)
         Kr = self.rvidx.sum()  # Number of random coeff
         N, R = draws.shape[0], draws.shape[2]
-        der = xnp.ones((N, Kr, R))
+        der = dev.np.ones((N, Kr, R))
         for k, dist in enumerate(self.rvdist):
             if dist == 'ln':
                 der[:, k, :] = betas_random[:, k, :]

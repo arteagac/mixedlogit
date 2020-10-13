@@ -4,12 +4,12 @@ from timeit import default_timer as timer
 import resource
 from time import sleep
 from threading import Thread
-import cupy as cp
+import cupy
 import sys
 sys.path.append(".")  # Path of mixedlogit library root folder.
 from mixedlogit import MixedLogit
 
-cupymem = cp.get_default_memory_pool()
+cupymem = cupy.get_default_memory_pool()
 data_folder = "https://raw.githubusercontent.com/arteagac/mixedlogit/master/"\
               "examples/data/"
 
@@ -71,8 +71,8 @@ for i in range(0, 3):
 
 
 np.random.seed(0)
-from mixedlogit import use_gpu_acceleration
-use_gpu_acceleration(False)
+from mixedlogit import device
+device.disable_gpu_acceleration()
 print("=== Electricity dataset. mixedlogit(CPU) ===")
 print("Ndraws Iter Time(s) Log-Likeli. RAM(GB) GPU(GB) Converg.")
 for i in range(0, 3):
