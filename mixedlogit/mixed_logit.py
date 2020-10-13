@@ -116,7 +116,7 @@ class MixedLogit(ChoiceModel):
         gr_w = dev.np.einsum('npjr,npjk -> nkr', ymp, Xr)*der*draws
         # Aggregate gradient and multiply by scaled probability
         g = dev.np.concatenate((gf, gr_b, gr_w), axis=1)  # (N,K,R)
-        g = g*pch[:, None, :]/dev.np.mean(pch, axis=1)[:, None, None]  # (N,K,R)
+        g = g*pch[:, None, :]/dev.np.mean(pch, axis=1)[:, None, None]  # N,K,R
         g = dev.np.mean(g, axis=2)  # (N,K)
 
         grad = dev.np.sum(g, axis=0)  # (K,)
