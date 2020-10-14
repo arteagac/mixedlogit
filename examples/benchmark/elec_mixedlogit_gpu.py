@@ -19,7 +19,7 @@ ini_ram = curr_ram()
 np.random.seed(0)
 print("\n\n=== Electricity dataset. mixedlogit (GPU) ===")
 print("Ndraws Time(s) Log-Likeli. RAM(GB) GPU(GB) Converg.")
-for i in range(0, 5):
+for i in range(0, 15):
     profiler = Profiler().start(measure_gpu_mem=True)
     n_draws = (i+1)*100
     model = MixedLogit()

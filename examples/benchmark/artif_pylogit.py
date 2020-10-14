@@ -9,20 +9,21 @@ from tools import Profiler, curr_ram
 
 data_folder = "https://raw.githubusercontent.com/arteagac/mixedlogit/master/"\
               "examples/data/"
-df = pd.read_csv(data_folder+"electricity_long.csv")
+df = pd.read_csv(data_folder+"artificial_long.csv")
 
-varnames = ["pf", "cl", "loc", "wk", "tod", "seas"]
+varnames = ['price', 'time', 'conven', 'comfort', 'meals', 'petfr', 'emipp',
+            'nonsig1', 'nonsig2', 'nonsig3']
 spec, spec_names = OrderedDict(), OrderedDict()
 
 for col in varnames:
     df[col] = df[col].astype(float)
-    spec[col] = [[1, 2, 3, 4]]
+    spec[col] = [[1, 2, 3]]
     spec_names[col] = [col]
 
 ini_ram = curr_ram()
 
 np.random.seed(0)
-print("\n\n=== Electricity dataset. pylogit ===")
+print("\n\n=== Artificial dataset. pylogit ===")
 print("Ndraws Time(s) Log-Likeli. RAM(GB) GPU(GB) Converg.")
 for i in range(0, 15):
     profiler = Profiler().start()
@@ -30,7 +31,7 @@ for i in range(0, 15):
     # Prints are temporarily disabled as pylogit has excessive verbosity
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()  # Disable print
     model = pl.create_choice_model(data=df, alt_id_col="alt",
-                                   obs_id_col="chid", choice_col="choice",
+                                   obs_id_col="id", choice_col="choice",
                                    specification=spec,
                                    model_type="Mixed Logit", names=spec_names,
                                    mixing_id_col="id", mixing_vars=varnames)
