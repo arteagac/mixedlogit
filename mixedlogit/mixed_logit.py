@@ -100,29 +100,31 @@ class MixedLogit(ChoiceModel):
             betas = dev.to_gpu(betas)
         p = self._compute_probabilities(betas, X, panel_info, draws)
         # Probability of chosen alternatives
-        pch = dev.np.sum(y*p, axis=2)  # (N,P,R)
+        pch = (y*p).sum(axis=2)  # (N,P,R)
         pch = self._prob_product_across_panels(pch, panel_info)  # (N,R)
 
+        # Log-likelihood
+        lik = pch.mean(axis=1)  # (N,)
+        loglik = dev.np.log(lik).sum()
+
+        # Gradient
         Xf = X[:, :, :, ~self.rvidx]
         Xr = X[:, :, :, self.rvidx]
 
-        # Gradient
         ymp = y - p  # (N,P,J,R)
-        # For fixed params
-        gf = dev.np.einsum('npjr,npjk -> nkr', ymp, Xf)
-        # For random params
+        # Gradient for fixed and random params
+        gr_f = dev.np.einsum('npjr,npjk -> nkr', ymp, Xf)
         der = self._compute_derivatives(betas, draws)
         gr_b = dev.np.einsum('npjr,npjk -> nkr', ymp, Xr)*der
         gr_w = dev.np.einsum('npjr,npjk -> nkr', ymp, Xr)*der*draws
-        # Aggregate gradient and multiply by scaled probability
-        g = dev.np.concatenate((gf, gr_b, gr_w), axis=1)  # (N,K,R)
-        g = g*pch[:, None, :]/dev.np.mean(pch, axis=1)[:, None, None]  # N,K,R
-        g = dev.np.mean(g, axis=2)  # (N,K)
+        # Multiply gradient by the chose prob. and dived by mean chose prob.
+        gr_f = (gr_f*pch[:, None, :]).mean(axis=2)/lik[:, None]  # (N,Kf)
+        gr_b = (gr_b*pch[:, None, :]).mean(axis=2)/lik[:, None]  # (N,Kr)
+        gr_w = (gr_w*pch[:, None, :]).mean(axis=2)/lik[:, None]  # (N,Kr)
+        # Put all gradients in a single array and aggregate them
+        grad = dev.np.concatenate((gr_f, gr_b, gr_w), axis=1)  # (N,K,R)
+        grad = grad.sum(axis=0)  # (K,)
 
-        grad = dev.np.sum(g, axis=0)  # (K,)
-        # Log-likelihood
-        lik = dev.np.mean(pch, axis=1)  # (N,R)
-        loglik = dev.np.sum(dev.np.log(lik))  # (N,)
         if dev.using_gpu:
             grad, loglik = dev.to_cpu(grad), dev.to_cpu(loglik)
         return -loglik, -grad
