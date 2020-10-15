@@ -1,11 +1,38 @@
 import os
-os.system("python elec_mixedlogit.py")
-os.system("python elec_mixedlogit_gpu.py")
-os.system("python elec_pylogit.py")
-os.system("Rscript elec_mlogit.R")
-os.system("python artif_mixedlogit.py")
-os.system("python artif_mixedlogit_gpu.py")
-os.system("python artif_pylogit.py")
-os.system("Rscript artif_mlogit.R")
-os.system("python estim_coefficients_py.py")
-os.system("Rscript estim_coefficients_r.R")
+from tools import init_profiler_output_file
+init_profiler_output_file()
+
+
+def profile_range_draws(command, r_draws, dataset, usegpu=False):
+    print("\n\n=== "+dataset+" dataset. "+command.split()[1] +
+          ('(using GPU)' if usegpu else '')+" ===")
+    print("Ndraws Time(s) Log-Likeli. RAM(GB) GPU(GB) Converg.")
+    for r in range(1, r_draws+1):
+        os.system("{} {} {} {} prof".format(command, r*100, dataset, usegpu*1))
+
+
+def print_estimates(command, n_draws, dataset):
+    print("\n\n=== "+dataset+" dataset. "+command.split()[1]+" ===")
+    os.system("{} {} {} {} estim".format(command, n_draws, dataset, 0))
+
+
+r_draws = 15 
+# Run profiling
+profile_range_draws("python mixedlogit_run.py", r_draws, "artificial", True)
+profile_range_draws("python mixedlogit_run.py", r_draws, "artificial")
+profile_range_draws("python pylogit_run.py", r_draws, "artificial")
+profile_range_draws("Rscript mlogit_run.R", r_draws, "artificial")
+profile_range_draws("python mixedlogit_run.py", r_draws, "electricity", True)
+profile_range_draws("python mixedlogit_run.py", r_draws, "electricity")
+profile_range_draws("python pylogit_run.py", r_draws, "electricity")
+profile_range_draws("Rscript mlogit_run.R", r_draws, "electricity")
+# Print estimates
+print_estimates("python mixedlogit_run.py", 200, "artificial")
+print_estimates("python pylogit_run.py", 200, "artificial")
+print_estimates("Rscript mlogit_run.R", 200, "artificial")
+print_estimates("python mixedlogit_run.py", 600, "electricity")
+print_estimates("python pylogit_run.py", 600, "electricity")
+print_estimates("Rscript mlogit_run.R", 600, "electricity")
+
+# Plot profiling results
+os.system("python plot_profiling_results.py")
