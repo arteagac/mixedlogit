@@ -1,9 +1,13 @@
 import matplotlib.pyplot as plt
+import matplotlib
 import pandas as pd
 
 df = pd.read_csv("results/profiling_results.csv")
 
 libs = ['pylogit', 'mlogit', 'mixedlogit', 'mixedlogit_gpu']
+matplotlib.rcParams.update({'font.size': 14,
+                            'axes.spines.right': False,
+                            'axes.spines.top': False})
 
 
 def plot_memory_benchmark(dataset):
