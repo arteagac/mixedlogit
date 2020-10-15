@@ -13,12 +13,12 @@ Install the requiriments in the file "requirements_bench.txt" in this same folde
 CuPy is the library that `mixedlogit` uses for GPU processing. The following are summarized instructions based on the instructions from CuPy's documentation:   https://docs.cupy.dev/en/stable/install.html
 ## 2.1 Update the Python setup tools
 This is recommended by CuPy developers as expressed at https://docs.cupy.dev/en/stable/install.html   
-`python -m pip install -U setuptools pip`
+`python -m pip install -U setuptools pip`  
 ## 2.2 Download and install CUDA toolkit
 Download CUDA toolkit v11 from https://developer.nvidia.com/cuda-downloads and follow their instructions for installation.  
 ## 2.3 Install cupy. 
 Install cupy depending on the version of CUDA toolkit selected. For instance, for v11 the command would be:  
-`pip install cupy-cuda110`
+`pip install cupy-cuda110`  
 For other versions see: https://docs.cupy.dev/en/stable/install.html  
 
 # 3. Install R tools
@@ -30,5 +30,5 @@ Administrator permissions are needed.
 `Rscript -e "install.packages('mlogit', repos='http://cran.us.r-project.org')"`
 
 # 4. Run benchmark
-`python benchmark.py`
+`python benchmark.py`  
 The results are saved in the 'results' folder and shown in console.
