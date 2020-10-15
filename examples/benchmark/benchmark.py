@@ -21,7 +21,7 @@ def print_estimates(command, n_draws, dataset):
     os.system("{} {} {} {} estim".format(command, n_draws, dataset, 0))
 
 
-r_draws = 3 
+r_draws = 15
 # Run profiling
 profile_range_draws("python mixedlogit_run.py", r_draws, "artificial", True)
 profile_range_draws("python mixedlogit_run.py", r_draws, "artificial")

@@ -3,12 +3,17 @@ from time import sleep, time
 from threading import Thread
 import psutil
 import os
+import sys
 cupymem = cupy.get_default_memory_pool()
 output_file = "results/profiling_results.csv"
 process = psutil.Process(os.getpid())
 
+
 def curr_ram():
-    return process.memory_info().vms/(1024*1024*1024)
+    if sys.platform == "win32":
+        return process.memory_info().vms/(1024*1024*1024)
+    else:
+        return process.memory_info().rss/(1024*1024*1024)
 
 
 def curr_gpu():
