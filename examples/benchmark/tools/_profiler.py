@@ -1,14 +1,14 @@
 import cupy
 from time import sleep, time
 from threading import Thread
-import resource
+import psutil
 import os
 cupymem = cupy.get_default_memory_pool()
 output_file = "results/profiling_results.csv"
-
+process = psutil.Process(os.getpid())
 
 def curr_ram():
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/(1024*1024)
+    return process.memory_info().vms/(1024*1024*1024)
 
 
 def curr_gpu():

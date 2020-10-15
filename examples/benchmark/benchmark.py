@@ -1,3 +1,8 @@
+"""
+This file executes the benchmark. Check the README.md file
+to make sure all the requirments are satisfied.
+"""
+
 import os
 from tools import init_profiler_output_file
 init_profiler_output_file()
@@ -16,7 +21,7 @@ def print_estimates(command, n_draws, dataset):
     os.system("{} {} {} {} estim".format(command, n_draws, dataset, 0))
 
 
-r_draws = 15 
+r_draws = 3 
 # Run profiling
 profile_range_draws("python mixedlogit_run.py", r_draws, "artificial", True)
 profile_range_draws("python mixedlogit_run.py", r_draws, "artificial")
