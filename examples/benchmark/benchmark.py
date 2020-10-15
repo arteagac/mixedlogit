@@ -23,6 +23,7 @@ def print_estimates(command, n_draws, dataset):
 
 r_draws = 15
 # Run profiling
+
 profile_range_draws("python mixedlogit_run.py", r_draws, "artificial", True)
 profile_range_draws("python mixedlogit_run.py", r_draws, "artificial")
 profile_range_draws("python pylogit_run.py", r_draws, "artificial")
@@ -31,13 +32,15 @@ profile_range_draws("python mixedlogit_run.py", r_draws, "electricity", True)
 profile_range_draws("python mixedlogit_run.py", r_draws, "electricity")
 profile_range_draws("python pylogit_run.py", r_draws, "electricity")
 profile_range_draws("Rscript mlogit_run.R", r_draws, "electricity")
+
 # Print estimates
+
 print_estimates("python mixedlogit_run.py", 200, "artificial")
 print_estimates("python pylogit_run.py", 200, "artificial")
 print_estimates("Rscript mlogit_run.R", 200, "artificial")
-print_estimates("python mixedlogit_run.py", 600, "electricity")
-print_estimates("python pylogit_run.py", 600, "electricity")
-print_estimates("Rscript mlogit_run.R", 600, "electricity")
+print_estimates("python mixedlogit_run.py", 700, "electricity")
+print_estimates("python pylogit_run.py", 700, "electricity")
+print_estimates("Rscript mlogit_run.R", 700, "electricity")
 
 # Plot profiling results
 os.system("python plot_profiling_results.py")

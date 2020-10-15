@@ -8,6 +8,7 @@ libs = ['pylogit', 'mlogit', 'mixedlogit', 'mixedlogit_gpu']
 
 def plot_memory_benchmark(dataset):
     dfe = df[df.dataset == dataset]
+    plt.figure()
     for lib in libs:
         d = dfe[dfe.library == lib][["draws", "ram"]].values.T
         plt.plot(d[0], d[1])
@@ -23,6 +24,7 @@ def plot_memory_benchmark(dataset):
 
 def plot_time_benchmark(dataset):
     dfe = df[df.dataset == dataset]
+    plt.figure()
     for lib in libs:
         d = dfe[dfe.library == lib][["draws", "time"]].values.T
         plt.plot(d[0], d[1])
