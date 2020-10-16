@@ -10,7 +10,6 @@ The following example analyzes choices of fishing modes. See the data [here](exa
 - `y`: Binary vector of choices (numpy array, shape [n_samples, ])
 - `varnames`: List of variable names. Its length must match number of columns in `X`
 - `alternatives`:  List of alternatives names or codes.
-- `asvars`: List of alternative specific variables
 - `randvars`: Variables with random distribution. `"n"` for normal and `"ln"` for log normal.
 
 The current version of `mixedlogit` only supports data in long format.
