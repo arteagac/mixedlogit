@@ -38,9 +38,9 @@ profile_range_draws("Rscript mlogit_run.R", r_draws, "electricity")
 print_estimates("python mixedlogit_run.py", 400, "artificial")
 print_estimates("python pylogit_run.py", 400, "artificial")
 print_estimates("Rscript mlogit_run.R", 400, "artificial")
-print_estimates("python mixedlogit_run.py", 900, "electricity")
-print_estimates("python pylogit_run.py", 900, "electricity")
-print_estimates("Rscript mlogit_run.R", 900, "electricity")
+print_estimates("python mixedlogit_run.py", 1200, "electricity")
+print_estimates("python pylogit_run.py", 1200, "electricity")
+print_estimates("Rscript mlogit_run.R", 1200, "electricity")
 
 # Plot profiling results
 os.system("python plot_profiling_results.py")

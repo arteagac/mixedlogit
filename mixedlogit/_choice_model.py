@@ -38,16 +38,16 @@ class ChoiceModel(ABC):
         self.model = None
 
     @abstractmethod
-    def fit(self, X, y, varnames=None, alternatives=None, asvars=None,
+    def fit(self, X, y, varnames=None, alternatives=None, isvars=None,
             base_alt=None, fit_intercept=False, init_coeff=None, maxiter=2000,
             random_state=None):
         pass
 
-    def _pre_fit(self, alternatives, varnames, asvars, base_alt,
+    def _pre_fit(self, alternatives, varnames, isvars, base_alt,
                  fit_intercept, maxiter):
         self._reset_attributes()
-        self.asvars = [] if not asvars else asvars
-        self.isvars = list(set(varnames) - set(asvars))
+        self.isvars = [] if not isvars else isvars
+        self.asvars = list(set(varnames) - set(self.isvars))
         self.varnames = varnames
         self.fit_intercept = fit_intercept
         self.alternatives = alternatives
@@ -119,7 +119,7 @@ class ChoiceModel(ABC):
 
         return X, names
 
-    def _validate_inputs(self, X, y, alternatives, varnames, asvars, base_alt,
+    def _validate_inputs(self, X, y, alternatives, varnames, isvars, base_alt,
                          fit_intercept, max_iterations):
         if not varnames:
             raise ValueError('The parameter varnames is required')
@@ -148,10 +148,10 @@ class ChoiceModel(ABC):
                   "The given estimates may not be reliable")
             print('*'*50)
         print("-"*75)
-        print("{:15} {:>13} {:>13} {:>13} {:>13}"
+        print("{:19} {:>13} {:>13} {:>13} {:>13}"
               .format("Coefficient", "Estimate", "Std.Err.", "z-val", "P>|z|"))
         print("-"*75)
-        fmt = "{:15} {:13.7f} {:13.7f} {:13.7f} {:13.3g} {:3}"
+        fmt = "{:19} {:13.7f} {:13.7f} {:13.7f} {:13.3g} {:3}"
         for i in range(len(self.coeff_)):
             signif = ""
             if self.pvalues[i] < 0.001:
@@ -162,7 +162,7 @@ class ChoiceModel(ABC):
                 signif = "*"
             elif self.pvalues[i] < 0.1:
                 signif = "."
-            print(fmt.format(self.coeff_names[i][:14], self.coeff_[i],
+            print(fmt.format(self.coeff_names[i][:19], self.coeff_[i],
                              self.stderr[i], self.zvalues[i], self.pvalues[i],
                              signif))
         print("-"*75)

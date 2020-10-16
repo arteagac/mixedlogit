@@ -43,7 +43,7 @@ if profile:
 np.random.seed(0)
 model = MixedLogit()
 model.fit(X, y, varnames, alternatives=alternatives, n_draws=n_draws,
-          asvars=varnames, mixby=mixby, verbose=0, randvars=randvars)
+          mixby=mixby, verbose=0, randvars=randvars)
 
 if profile:
     ellapsed, max_ram, max_gpu = profiler.stop()
