@@ -8,16 +8,16 @@ libs = ['pylogit', 'mlogit', 'mixedlogit', 'mixedlogit_gpu']
 matplotlib.rcParams.update({'font.size': 14,
                             'axes.spines.right': False,
                             'axes.spines.top': False})
-
+markers = ['s', '|', '^', 'x', 'o']
 
 def plot_memory_benchmark(dataset):
     dfe = df[df.dataset == dataset]
     plt.figure()
-    for lib in libs:
+    for i, lib in enumerate(libs):
         d = dfe[dfe.library == lib][["draws", "ram"]].values.T
-        plt.plot(d[0], d[1])
+        plt.plot(d[0], d[1], marker=markers[i])
     d = dfe[dfe.library == "mixedlogit_gpu"][["draws", "gpu"]].values.T
-    plt.plot(d[0], d[1])
+    plt.plot(d[0], d[1], marker=markers[-1])
     plt.legend([i + " (RAM)" for i in libs] + ["mixedlogit_gpu (GPU)"])
     plt.xlabel("Random draws")
     plt.ylabel("Memory usage (GB)")
@@ -29,9 +29,9 @@ def plot_memory_benchmark(dataset):
 def plot_time_benchmark(dataset):
     dfe = df[df.dataset == dataset]
     plt.figure()
-    for lib in libs:
+    for i, lib in enumerate(libs):
         d = dfe[dfe.library == lib][["draws", "time"]].values.T
-        plt.plot(d[0], d[1])
+        plt.plot(d[0], d[1], marker=markers[i])
     plt.legend(libs)
     plt.xlabel("Random draws")
     plt.ylabel("Time (Seconds)")
