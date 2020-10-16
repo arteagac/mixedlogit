@@ -24,8 +24,6 @@ class ChoiceModel(ABC):
         self.zvalues = None
         self.pvalues = None
         self.loglikelihood = None
-        self.model_type = None
-        self.model = None
 
     def _reset_attributes(self):
         self.coeff_names = None
@@ -34,24 +32,22 @@ class ChoiceModel(ABC):
         self.zvalues = None
         self.pvalues = None
         self.loglikelihood = None
-        self.model_type = None
-        self.model = None
 
     @abstractmethod
-    def fit(self, X, y, varnames=None, alternatives=None, isvars=None,
+    def fit(self, X, y, varnames=None, alt=None, isvars=None,
             base_alt=None, fit_intercept=False, init_coeff=None, maxiter=2000,
             random_state=None):
         pass
 
-    def _pre_fit(self, alternatives, varnames, isvars, base_alt,
+    def _pre_fit(self, alt, varnames, isvars, base_alt,
                  fit_intercept, maxiter):
         self._reset_attributes()
         self.isvars = [] if not isvars else isvars
         self.asvars = list(set(varnames) - set(self.isvars))
         self.varnames = varnames
         self.fit_intercept = fit_intercept
-        self.alternatives = alternatives
-        self.base_alt = alternatives[0] if base_alt is None else base_alt
+        self.alt = alt
+        self.base_alt = alt[0] if base_alt is None else base_alt
         self.maxiter = maxiter
 
     def _post_fit(self, optimization_res, coeff_names, N, verbose=1):
@@ -73,7 +69,7 @@ class ChoiceModel(ABC):
             print("Message: "+optimization_res['message'])
 
     def _setup_design_matrix(self, X):
-        J = len(self.alternatives)
+        J = len(self.alt)
         N = int(len(X)/J)
         isvars = self.isvars.copy()
         asvars = self.asvars.copy()
@@ -90,11 +86,11 @@ class ChoiceModel(ABC):
         # Create design matrix
         # For individual specific variables
         if isvars:
-            # Create a dummy individual specific variables for the alternatives
+            # Create a dummy individual specific variables for the alt
             dummy = np.tile(np.eye(J), reps=(N, 1))
             # Remove base alternative
             dummy = np.delete(dummy,
-                              self.alternatives.index(self.base_alt), axis=1)
+                              self.alt.index(self.base_alt), axis=1)
             Xis = X[:, ispos]
             # Multiply dummy representation by the individual specific data
             Xis = np.einsum('ij,ik->ijk', Xis, dummy)
@@ -114,16 +110,16 @@ class ChoiceModel(ABC):
             X = Xis
 
         names = ["{}.{}".format(isvar, j) for isvar in isvars
-                 for j in self.alternatives if j != self.base_alt] + asvars
+                 for j in self.alt if j != self.base_alt] + asvars
         names = np.array(names)
 
         return X, names
 
-    def _validate_inputs(self, X, y, alternatives, varnames, isvars, base_alt,
+    def _validate_inputs(self, X, y, alt, varnames, isvars, base_alt,
                          fit_intercept, max_iterations):
         if not varnames:
             raise ValueError('The parameter varnames is required')
-        if not alternatives:
+        if not alt:
             raise ValueError('The parameter alternatives is required')
         if X.ndim != 2:
             raise ValueError("X must be an array of two dimensions in "

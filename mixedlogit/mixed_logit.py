@@ -19,13 +19,13 @@ class MixedLogit(ChoiceModel):
         self.rvdist = None
 
     # X: (N, J, K)
-    def fit(self, X, y, varnames=None, alternatives=None, isvars=None,
+    def fit(self, X, y, varnames=None, alt=None, isvars=None,
             randvars=None, mixby=None, base_alt=None, fit_intercept=False,
             init_coeff=None, maxiter=2000, random_state=None,
             n_draws=200, halton=True, verbose=1):
-        self._validate_inputs(X, y, alternatives, varnames, isvars,
+        self._validate_inputs(X, y, alt, varnames, isvars,
                               base_alt, fit_intercept, maxiter)
-        self._pre_fit(alternatives, varnames, isvars, base_alt,
+        self._pre_fit(alt, varnames, isvars, base_alt,
                       fit_intercept, maxiter)
 
         if random_state is not None:
@@ -99,7 +99,7 @@ class MixedLogit(ChoiceModel):
         if dev.using_gpu:
             betas = dev.to_gpu(betas)
         p = self._compute_probabilities(betas, X, panel_info, draws)
-        # Probability of chosen alternatives
+        # Probability of chosen alt
         pch = (y*p).sum(axis=2)  # (N,P,R)
         pch = self._prob_product_across_panels(pch, panel_info)  # (N,R)
 

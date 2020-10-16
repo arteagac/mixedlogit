@@ -10,7 +10,7 @@ from ._choice_model import ChoiceModel
 class MultinomialLogit(ChoiceModel):
     """Class for estimation of Multinomial and Conditional Logit Models"""
 
-    def fit(self, X, y, varnames=None, alternatives=None, isvars=None,
+    def fit(self, X, y, varnames=None, alt=None, isvars=None,
             base_alt=None, fit_intercept=False, init_coeff=None, maxiter=2000,
             random_state=None, verbose=1):
         """
@@ -29,10 +29,10 @@ class MultinomialLogit(ChoiceModel):
         max_iterations: int, Maximum number of optimization iterations
         fit_intercept: bool
         """
-        self._validate_inputs(X, y, alternatives, varnames, isvars,
+        self._validate_inputs(X, y, alt, varnames, isvars,
                               base_alt, fit_intercept, maxiter)
 
-        self._pre_fit(alternatives, varnames, isvars, base_alt,
+        self._pre_fit(alt, varnames, isvars, base_alt,
                       fit_intercept, maxiter)
 
         if random_state is not None:
@@ -87,7 +87,7 @@ class MultinomialLogit(ChoiceModel):
         H = np.dot(g_i.T, g_i)
         Hinv = np.linalg.inv(H)
         grad = np.sum(g_i, axis=0)
-        return (-loglik, -grad, Hinv)
+        return -loglik, -grad, Hinv
 
     def _bfgs_optimization(self, betas, X, y, maxiter):
         """
