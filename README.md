@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.com/arteagac/pymlogit.svg?branch=master)](https://travis-ci.com/arteagac/pymlogit)
 
 # mixedlogit
-GPU accelerated estimation of mixed logit models in python.  
+mixedlogit: A Python package for GPU-accelerated estimation of mixed logit models.  
 Multinomial and conditional logit models are also supported.
 
 ### Example:
@@ -77,10 +77,9 @@ To cite this package:
 ```
 @software{mixedlogit,
     author = {Arteaga, Cristian and Bhat, Prithvi and Park, JeeWoong and Paz, Alexander},
-    title = {mixedlogit: A Python package for GPU accelerated estimation of mixed, 
-             multinomial, and conditional logit models},
+    title = {mixedlogit: mixedlogit: A Python package for GPU-accelerated estimation of mixed logit models},
     url = {https://github.com/arteagac/mixedlogit},
-    version = {0.0.1},
+    version = {0.0.2},
     year = {2020}
 }
 ```
