@@ -21,33 +21,31 @@ The current version of `mixedlogit` only supports data in long format.
 import pandas as pd
 df = pd.read_csv("examples/data/fishing_long.csv")
 
-varnames = ['price', 'catch']
-X = df[varnames].values
+X = df[['price', 'catch']].values
 y = df['choice'].values
 
 # Fit the model with mixedlogit
 from mixedlogit import MixedLogit
 model = MixedLogit()
 model.fit(X, y, 
-          varnames=varnames,
+          varnames=['price', 'catch'],
           alternatives=['beach', 'boat', 'charter', 'pier'],
-          asvars=['price', 'catch'],
           randvars={'price': 'n', 'catch': 'n'})
 model.summary()
 ```
 
 #### Output
 ```
-Estimation succesfully completed after 27 iterations. Use .summary() to see the estimated values
---------------------------------------------------------------------------------
-Coefficient           Estimate    Std.Err.    z-val       P>|z|   
---------------------------------------------------------------------------------
-price                 -0.0274061  0.0024847   -11.029837  0.000000 ***  
-catch                 1.3345446   0.1726896   7.727997    0.000000 **   
-sd.price              0.0104608   0.0021156   4.944513    0.000004 **   
-sd.catch              1.5857199   0.5797202   2.735319    0.019095 .    
---------------------------------------------------------------------------------
-Significance:  *** 0    ** 0.001    * 0.01    . 0.05
+Estimation succesfully completed after 21 iterations.
+---------------------------------------------------------------------------
+Coefficient          Estimate      Std.Err.         z-val         P>|z|
+---------------------------------------------------------------------------
+price              -0.0274061     0.0022827   -12.0062499       2.2e-30 ***
+catch               1.3345446     0.1735364     7.6902874      2.29e-13 ***
+sd.price            0.0104608     0.0020466     5.1113049      1.93e-06 ***
+sd.catch            1.5857201     0.3746104     4.2329844      0.000109 ***
+---------------------------------------------------------------------------
+Significance:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Log-Likelihood= -1300.227
 ```
