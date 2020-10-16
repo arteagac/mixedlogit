@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.com/arteagac/pymlogit.svg?branch=master)](https://travis-ci.com/arteagac/pymlogit)
 
 # mixedlogit
-GPU accelerated estimation of mixed logit models in python.  
+mixedlogit: A Python package for GPU-accelerated estimation of mixed logit models.  
 Multinomial and conditional logit models are also supported.
 
 ### Example:
@@ -9,7 +9,7 @@ The following example analyzes choices of fishing modes. See the data [here](exa
 - `X`: Data matrix in long format (numpy array, shape [n_samples, n_variables])
 - `y`: Binary vector of choices (numpy array, shape [n_samples, ])
 - `varnames`: List of variable names. Its length must match number of columns in `X`
-- `alternatives`:  List of alternatives names or codes.
+- `alt`:  List of alternatives names or codes.
 - `randvars`: Variables with random distribution. `"n"` for normal and `"ln"` for log normal.
 
 The current version of `mixedlogit` only supports data in long format.
@@ -28,22 +28,22 @@ from mixedlogit import MixedLogit
 model = MixedLogit()
 model.fit(X, y, 
           varnames=['price', 'catch'],
-          alternatives=['beach', 'boat', 'charter', 'pier'],
-          randvars={'price': 'n', 'catch': 'n'})
+          randvars={'price': 'n', 'catch': 'n'},
+          alt=['beach', 'boat', 'charter', 'pier'])
 model.summary()
 ```
 
 #### Output
 ```
 Estimation succesfully completed after 21 iterations.
----------------------------------------------------------------------------
-Coefficient              Estimate      Std.Err.         z-val         P>|z|
----------------------------------------------------------------------------
-price                  -0.0274061     0.0022827   -12.0062499       2.2e-30 ***
-catch                   1.3345446     0.1735364     7.6902874      2.29e-13 ***
-sd.price                0.0104608     0.0020466     5.1113049      1.93e-06 ***
-sd.catch                1.5857201     0.3746104     4.2329844      0.000109 ***
----------------------------------------------------------------------------
+------------------------------------------------------------------------
+Coefficient           Estimate      Std.Err.         z-val         P>|z|
+------------------------------------------------------------------------
+price               -0.0274061     0.0022827   -12.0062499       2.2e-30 ***
+catch                1.3345446     0.1735364     7.6902874      2.29e-13 ***
+sd.price             0.0104608     0.0020466     5.1113049      1.93e-06 ***
+sd.catch             1.5857201     0.3746104     4.2329844      0.000109 ***
+------------------------------------------------------------------------
 Significance:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Log-Likelihood= -1300.227
@@ -77,10 +77,9 @@ To cite this package:
 ```
 @software{mixedlogit,
     author = {Arteaga, Cristian and Bhat, Prithvi and Park, JeeWoong and Paz, Alexander},
-    title = {mixedlogit: A Python package for GPU accelerated estimation of mixed, 
-             multinomial, and conditional logit models},
+    title = {mixedlogit: mixedlogit: A Python package for GPU-accelerated estimation of mixed logit models},
     url = {https://github.com/arteagac/mixedlogit},
-    version = {0.0.1},
+    version = {0.0.2},
     year = {2020}
 }
 ```
