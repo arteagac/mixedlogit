@@ -1,7 +1,8 @@
 [![Build Status](https://travis-ci.com/arteagac/pymlogit.svg?branch=master)](https://travis-ci.com/arteagac/pymlogit)
 
 # mixedlogit
-GPU accelerated estimation of mixed, multinomial, and conditional logit models in python.
+GPU accelerated estimation of mixed logit models in python.  
+Multinomial and conditional logit models are also supported.
 
 ### Example:
 The following example analyzes choices of fishing modes. See the data [here](examples/data/fishing_long.csv) and more information about the data [here](https://doi.org/10.1162/003465399767923827). The parameters are:
